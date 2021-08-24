@@ -6,8 +6,8 @@ from flask import send_from_directory, Response
 dataDir = '/var/www/data/'
 binDir = '/var/www/bin/'
 tmpDir = '/var/www/tmp/'
-rootUrl = 'https://' + socket.gethostname().replace('-2a', '') + '/'
-# rootUrl = 'https://gotermfinder.dev.yeastgenome.org/'
+# rootUrl = 'https://' + socket.gethostname().replace('-2a', '') + '/'
+rootUrl = 'https://gotermfinder.dev.yeastgenome.org/'
 
 gaf = dataDir + 'gene_association.sgd'
 gtfScript = binDir + 'GOTermFinder.pl'    
@@ -184,7 +184,6 @@ def gtf_search(request):
 
     genes4bg = get_param(request, 'genes4bg')
     evidence = get_param(request, 'evidence')
-    FDR = get_param(request, 'PDR')
     pvalue = get_param(request, 'pvalue')
     if pvalue is None:
         pvalue = 0.01
@@ -207,8 +206,12 @@ def gtf_search(request):
             evidence = evidence[1:]
         evidence = evidence.replace('|', ',')
         option = option + " -e " + evidence
-    
-    if FDR == 1:
+
+    p = request.args
+    f = request.form
+    FDR = p.get('FDR') if p.get('FDR') else f.get('FDR')
+
+    if FDR:
         option = option + " -F"
         
     # only create html page
