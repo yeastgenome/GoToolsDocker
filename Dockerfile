@@ -10,7 +10,8 @@ RUN apt-get update \
         libcgi-pm-perl \
         libgd-perl \
         libgraphviz-perl \
-        make 
+        make \
+        wget
 
 WORKDIR /
 RUN wget https://cpan.metacpan.org/authors/id/S/SH/SHERLOCK/GO-TermFinder-0.86.tar.gz \
@@ -46,7 +47,6 @@ RUN apt-get update \
         libipc-run-perl \
         net-tools \
         python3-pip \
-        wget \
     && pip3 install Flask \
     && pip3 install -U flask-cors \
     && pip3 install virtualenv
