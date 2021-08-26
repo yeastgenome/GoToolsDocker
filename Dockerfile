@@ -55,6 +55,7 @@ COPY --from=builder /usr/local/lib/x86_64-linux-gnu/perl/5.30.0 .
 
 WORKDIR /var/www
 COPY www /var/www/
+RUN chmod 1777 tmp
 
 WORKDIR /etc/apache2/sites-available
 COPY FlaskApp.conf .
