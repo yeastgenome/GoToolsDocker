@@ -2,19 +2,22 @@ import json
 import os
 import socket
 from flask import send_from_directory, Response
+import random
+
+id = str(random.randint(1, 10000000))
 
 dataDir = '/var/www/data/'
 binDir = '/var/www/bin/'
 tmpDir = '/var/www/tmp/'
-# rootUrl = 'https://' + socket.gethostname().replace('-2a', '') + '/'
-rootUrl = 'https://gotermfinder.dev.yeastgenome.org/'
+rootUrl = 'https://' + socket.gethostname().replace('-2a', '') + '/'
+# rootUrl = 'https://gotermfinder.dev.yeastgenome.org/'
 
 gaf = dataDir + 'gene_association.sgd'
 gtfScript = binDir + 'GOTermFinder.pl'    
 
-geneList = tmpDir + str(os.getpid()) + '.lst'
-gene4bgList = tmpDir + str(os.getpid()) + '_4bg.lst'
-tmpTab = tmpDir + str(os.getpid()) + '_tab.txt'
+geneList = tmpDir + id + '.lst'
+gene4bgList = tmpDir + id + '_4bg.lst'
+tmpTab = tmpDir + id + '_tab.txt'
 
 def set_download_file(filename):
 
@@ -87,9 +90,9 @@ def create_gene_list(genelist_file, genes, namemapping, aliasmapping):
     
 def get_html_content():
 
-    htmlFile = tmpDir + str(os.getpid()) + '.html'
-    imageHtmlFile = tmpDir + str(os.getpid()) + '_ImageHtml.html'
-    imageFile = tmpDir + str(os.getpid()) + '_Image.html'
+    htmlFile = tmpDir + id + '.html'
+    imageHtmlFile = tmpDir + id + '_ImageHtml.html'
+    imageFile = tmpDir + id + '_Image.html'
 
     ## get rid of html and body tags in html file
     f = open(htmlFile, encoding="utf-8")
@@ -238,14 +241,14 @@ def gtf_search(request):
         (html, imageHtml) = get_html_content()        
         return { "html": html,
                  "image_html": imageHtml,
-		 "image_page": get_download_url(str(os.getpid())+'_Image.html'),
-		 "tab_page": get_download_url(str(os.getpid())+'_tab.txt'),
-		 "term_page": get_download_url(str(os.getpid())+'_terms.txt'),
-                 "table_page": get_download_url(str(os.getpid())+'.html'),
-		 "png_page": get_download_url(str(os.getpid())+'.png'),
-		 "svg_page": get_download_url(str(os.getpid())+'.svg'),
-		 "ps_page": get_download_url(str(os.getpid())+'.ps'),
-		 "input_page": get_download_url(str(os.getpid())+'.lst') }
+		 "image_page": get_download_url(id+'_Image.html'),
+		 "tab_page": get_download_url(id+'_tab.txt'),
+		 "term_page": get_download_url(id+'_terms.txt'),
+                 "table_page": get_download_url(id+'.html'),
+		 "png_page": get_download_url(id+'.png'),
+		 "svg_page": get_download_url(id+'.svg'),
+		 "ps_page": get_download_url(id+'.ps'),
+		 "input_page": get_download_url(id+'.lst') }
     
     
 

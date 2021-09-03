@@ -4,6 +4,9 @@ import socket
 from flask import send_from_directory, Response
 from os import path
 from gotermfinder import get_param, parse_gaf_file, create_gene_list, get_download_url
+import random
+
+id = str(random.randint(1, 10000000))
 
 dataDir = '/var/www/data/'
 binDir = '/var/www/bin/'
@@ -18,8 +21,8 @@ gaf4P = dataDir + 'slim_process_gene_association.sgd'
 
 gtmScript = binDir + 'GOTermMapper.pl'
 
-genefileNmRoot = "mapper_genes_" + str(os.getpid())
-slimInputFile =	"mapper_terms_" + str(os.getpid())
+genefileNmRoot = "mapper_genes_" + id
+slimInputFile =	"mapper_terms_" + id
 geneList = tmpDir + genefileNmRoot + '.lst'
 termList = tmpDir + slimInputFile
 tmpTab = tmpDir + genefileNmRoot + '_slimTab.txt'
