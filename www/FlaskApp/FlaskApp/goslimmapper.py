@@ -4,15 +4,10 @@ import socket
 from flask import send_from_directory, Response
 from os import path
 from gotermfinder import get_param, parse_gaf_file, create_gene_list, get_download_url
-import random
-
-id = str(random.randint(1, 10000000))
 
 dataDir = '/var/www/data/'
 binDir = '/var/www/bin/'
 tmpDir = '/var/www/tmp/'
-rootUrl = 'https://' + socket.gethostname().replace('-2a', '') + '/'
-# rootUrl = 'https://gotermfinder.dev.yeastgenome.org/'
 
 gaf = dataDir + 'gene_association.sgd'
 gaf4C = dataDir + 'slim_component_gene_association.sgd'
@@ -21,13 +16,10 @@ gaf4P = dataDir + 'slim_process_gene_association.sgd'
 
 gtmScript = binDir + 'GOTermMapper.pl'
 
-genefileNmRoot = "mapper_genes_" + id
-slimInputFile =	"mapper_terms_" + id
-geneList = tmpDir + genefileNmRoot + '.lst'
-termList = tmpDir + slimInputFile
-tmpTab = tmpDir + genefileNmRoot + '_slimTab.txt'
+rootUrl = 'https://' + socket.gethostname() + '/'  
 
-def create_term_list(terms):
+
+def create_term_list(terms, termList):
 
     fw = open(termList, 'w')
     
@@ -74,7 +66,13 @@ def set_gaf_file(aspect):
        return gaf4F
     return gaf4C
 
-def gtm_search(request):
+def gtm_search(request, id):
+
+    genefileNmRoot = "mapper_genes_" + id
+    slimInputFile = "mapper_terms_" + id
+    geneList = tmpDir + genefileNmRoot + '.lst'
+    termList = tmpDir + slimInputFile
+    tmpTab = tmpDir + genefileNmRoot + '_slimTab.txt'
 
     genes = get_param(request, 'genes')
     if genes == '':
@@ -91,7 +89,7 @@ def gtm_search(request):
 
     (namemapping, aliasmapping) = parse_gaf_file(gaf)
     create_gene_list(geneList, genes, namemapping, aliasmapping)
-    create_term_list(terms)
+    create_term_list(terms, termList)
     thisGAF = set_gaf_file(aspect)
     
     cmd = gtmScript + " -h -d " + tmpDir + " -a " + aspect + " -o " + termList + " -g " + thisGAF + " " + geneList 

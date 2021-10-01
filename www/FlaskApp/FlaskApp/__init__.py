@@ -3,6 +3,7 @@ import json
 import sys
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import random
 
 sys.path.insert(0,"/var/www/FlaskApp/FlaskApp")
 from gotermfinder import gtf_search, enrichment_search, set_download_file
@@ -12,6 +13,8 @@ app = Flask(__name__)
 
 ## to solve Cross Origin Resource issue
 CORS(app)  
+
+random_max = 10000000
 
 @app.route('/')
 def hello():
@@ -25,14 +28,14 @@ def gotermfinder():
         response = set_download_file(p.get('file'))
         return response
     
-    data = gtf_search(request)
+    data = gtf_search(request, get_id())
     return jsonify(data)
 
 
 @app.route('/termfinder', methods=['GET', 'POST'])
 def goenrichment():
 
-    data = enrichment_search(request)
+    data = enrichment_search(request, get_id())
     return jsonify(data)
 
 @app.route('/goslimmapper', methods=['GET', 'POST'])
@@ -43,9 +46,12 @@ def goslimmapper():
         response = set_download_file(p.get('file'))
         return response
     
-    data = gtm_search(request)
+    data = gtm_search(request, get_id())
     return jsonify(data)
 
+def get_id():
+
+    return str(random.randint(1, random_max))
 
 if __name__ == '__main__':
     app.run()

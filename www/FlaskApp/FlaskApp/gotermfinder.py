@@ -2,22 +2,16 @@ import json
 import os
 import socket
 from flask import send_from_directory, Response
-import random
-
-id = str(random.randint(1, 10000000))
 
 dataDir = '/var/www/data/'
 binDir = '/var/www/bin/'
 tmpDir = '/var/www/tmp/'
-rootUrl = 'https://' + socket.gethostname().replace('-2a', '') + '/'
-# rootUrl = 'https://gotermfinder.dev.yeastgenome.org/'
 
 gaf = dataDir + 'gene_association.sgd'
-gtfScript = binDir + 'GOTermFinder.pl'    
+gtfScript = binDir + 'GOTermFinder.pl'
 
-geneList = tmpDir + id + '.lst'
-gene4bgList = tmpDir + id + '_4bg.lst'
-tmpTab = tmpDir + id + '_tab.txt'
+rootUrl = 'https://' + socket.gethostname() + '/'   
+
 
 def set_download_file(filename):
 
@@ -88,7 +82,7 @@ def create_gene_list(genelist_file, genes, namemapping, aliasmapping):
         fw.write(gene + "\n")
     fw.close()
     
-def get_html_content():
+def get_html_content(id):
 
     htmlFile = tmpDir + id + '.html'
     imageHtmlFile = tmpDir + id + '_ImageHtml.html'
@@ -131,7 +125,10 @@ def get_html_content():
     
     return (html, image)
 
-def enrichment_search(request):
+def enrichment_search(request, id):
+
+    geneList = tmpDir + id + '.lst'
+    tmpTab = tmpDir + id + '_tab.txt'
     
     genes = get_param(request, 'genes')
     genes = genes.upper().replace('SGD:', '')
@@ -170,8 +167,12 @@ def enrichment_search(request):
 
     return data
 
-def gtf_search(request):
+def gtf_search(request, id):
 
+    geneList = tmpDir + id + '.lst'
+    gene4bgList = tmpDir + id + '_4bg.lst'
+    tmpTab = tmpDir + id + '_tab.txt'
+    
     # 'COR5|CYT1|Q0105|QCR2|S000001929|S000002937|S000003809|YEL024W|YEL039C|YGR183C|YHR001W-A'
 
     genes = get_param(request, 'genes')
@@ -217,17 +218,11 @@ def gtf_search(request):
     if FDR:
         option = option + " -F"
         
-    # only create html page
-    # my $cmd = "$gtfScript -a $aspect -g $gaf -t $tmpDir $geneList -h";
-    # create image plus html page
     cmd = gtfScript + ' -a ' + aspect + ' -g ' + gaf + ' -t ' + tmpDir + ' ' + geneList + ' -v'
     if option != '':
     	cmd = cmd + option
 
     output = os.popen(cmd).read()
-
-    # return { "cmd": cmd,
-    #         "output": output }
     
     if 'No significant GO terms' in output:
         if 'were found for your input list of genes.' in output:
@@ -238,7 +233,7 @@ def gtf_search(request):
     # elif os.path.exists(tmpTab):
     #    return  { "output": "<pre>" + output + "</pre>" }
     else:
-        (html, imageHtml) = get_html_content()        
+        (html, imageHtml) = get_html_content(id)        
         return { "html": html,
                  "image_html": imageHtml,
 		 "image_page": get_download_url(id+'_Image.html'),
