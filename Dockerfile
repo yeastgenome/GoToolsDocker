@@ -48,6 +48,7 @@ RUN apt-get update \
         net-tools \
         python3-pip \
     && pip3 install Flask \
+    && pip3 install boto3 \
     && pip3 install -U flask-cors \
     && pip3 install virtualenv
 
