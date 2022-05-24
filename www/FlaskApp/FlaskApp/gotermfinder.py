@@ -1,6 +1,8 @@
 import json
 import os
-import socket
+import hashlib
+from pathlib import Path
+import boto3
 from flask import send_from_directory, Response
 
 dataDir = '/var/www/data/'
@@ -10,8 +12,8 @@ tmpDir = '/var/www/tmp/'
 gaf = dataDir + 'gene_association.sgd'
 gtfScript = binDir + 'GOTermFinder.pl'
 
-rootUrl = 'https://' + socket.gethostname() + '/'   
-
+S3_BUCKET = os.environ['S3_BUCKET']
+s3_root_url = "https://" + S3_BUCKET + ".s3.amazonaws.com/"
 
 def set_download_file(filename):
 
@@ -25,10 +27,40 @@ def set_download_file(filename):
     content = f.read()
     f.close()
     return "<pre>" + content + "</pre>"
-    
-def get_download_url(filename):
 
-    return rootUrl + "gotermfinder?file=" + filename
+def upload_file_to_s3(file, filename):
+
+    # S3_BUCKET = os.environ['S3_BUCKET']
+    S3_BUCKET = 'sgd-dev-upload'
+
+    s3 = boto3.client('s3')
+    file.seek(0)
+    s3.upload_fileobj(file, S3_BUCKET, filename, ExtraArgs={'ACL': 'public-read'})
+
+    return s3_root_url + filename
+
+def get_download_url(tmpFile):
+
+    downloadFile = tmpDir + tmpFile
+    if not tmpFile.endswith('.png'):
+        thisFile = Path(str(downloadFile))
+        md5sum = None
+        with thisFile.open(mode="rb") as fh:
+            md5sum = hashlib.md5(fh.read()).hexdigest()
+        newFileName = downloadFile
+        file_suffix = tmpFile.split('.')[-1]
+        if file_suffix not in ['txt', 'svg', 'png', 'html', 'ps']:
+            file_suffix = 'txt'
+        if md5sum:
+            tmpFile = md5sum + "." + file_suffix
+            newFileName = tmpDir + tmpFile
+        os.rename(downloadFile, newFileName)
+        downloadFile = newFileName
+    file = open(downloadFile, "rb")
+       
+    s3_url = upload_file_to_s3(file, tmpFile)
+        
+    return s3_url
 
 def get_param(request, name):
 
@@ -103,7 +135,7 @@ def get_html_content(id):
     image = f.read()
     f.close()
 
-    image = image.replace("<img src='./", "<img src='" + rootUrl + "gotermfinder?file=")
+    image = image.replace("<img src='./", "<img src='" + s3_root_url)
 
     fw = open(imageFile, "w")
     fw.write(image)
@@ -117,7 +149,7 @@ def get_html_content(id):
     imageHtml = f.read()
     f.close()
 
-    imageHtml = imageHtml.replace("<img src='./", "<img src='" + rootUrl + "gotermfinder?file=")
+    imageHtml = imageHtml.replace("<img src='./", "<img src='" + s3_root_url)
 
     fw = open(imageHtmlFile, "w")
     fw.write(imageHtml)
@@ -127,7 +159,7 @@ def get_html_content(id):
 
 def enrichment_search(request, id):
 
-    geneList = tmpDir + id + '.lst'
+    geneList = tmpDir + id + '.txt'
     tmpTab = tmpDir + id + '_tab.txt'
     
     genes = get_param(request, 'genes')
@@ -169,8 +201,8 @@ def enrichment_search(request, id):
 
 def gtf_search(request, id):
 
-    geneList = tmpDir + id + '.lst'
-    gene4bgList = tmpDir + id + '_4bg.lst'
+    geneList = tmpDir + id + '.txt'
+    gene4bgList = tmpDir + id + '_4bg.txt'
     tmpTab = tmpDir + id + '_tab.txt'
     
     # 'COR5|CYT1|Q0105|QCR2|S000001929|S000002937|S000003809|YEL024W|YEL039C|YGR183C|YHR001W-A'
@@ -233,6 +265,7 @@ def gtf_search(request, id):
     # elif os.path.exists(tmpTab):
     #    return  { "output": "<pre>" + output + "</pre>" }
     else:
+        png_url = get_download_url(id+'.png')
         (html, imageHtml) = get_html_content(id)        
         return { "html": html,
                  "image_html": imageHtml,
@@ -240,10 +273,10 @@ def gtf_search(request, id):
 		 "tab_page": get_download_url(id+'_tab.txt'),
 		 "term_page": get_download_url(id+'_terms.txt'),
                  "table_page": get_download_url(id+'.html'),
-		 "png_page": get_download_url(id+'.png'),
+		 "png_page": png_url,
 		 "svg_page": get_download_url(id+'.svg'),
 		 "ps_page": get_download_url(id+'.ps'),
-		 "input_page": get_download_url(id+'.lst') }
+		 "input_page": get_download_url(id+'.txt') }
     
     
 

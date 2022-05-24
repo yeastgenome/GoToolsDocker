@@ -1,6 +1,5 @@
 import json
 import os
-import socket
 from flask import send_from_directory, Response
 from os import path
 from gotermfinder import get_param, parse_gaf_file, create_gene_list, get_download_url
@@ -15,9 +14,6 @@ gaf4F = dataDir + 'slim_function_gene_association.sgd'
 gaf4P = dataDir + 'slim_process_gene_association.sgd'
 
 gtmScript = binDir + 'GOTermMapper.pl'
-
-rootUrl = 'https://' + socket.gethostname() + '/'  
-
 
 def create_term_list(terms, termList):
 
@@ -68,10 +64,10 @@ def set_gaf_file(aspect):
 
 def gtm_search(request, id):
 
-    genefileNmRoot = "mapper_genes_" + id
-    slimInputFile = "mapper_terms_" + id
-    geneList = tmpDir + genefileNmRoot + '.lst'
-    termList = tmpDir + slimInputFile
+    genefileNmRoot = "mapper_genes_" + id 
+    slimInputFile = "mapper_terms_" + id 
+    geneList = tmpDir + genefileNmRoot + '.txt'
+    termList = tmpDir + slimInputFile 
     tmpTab = tmpDir + genefileNmRoot + '_slimTab.txt'
 
     genes = get_param(request, 'genes')
@@ -104,7 +100,7 @@ def gtm_search(request, id):
              "table_page": get_download_url(genefileNmRoot + '_slimTerms.html'),
 	     "tab_page": get_download_url(genefileNmRoot + '_slimTab.txt'),
 	     "term_page": get_download_url(genefileNmRoot + '_slimTerms.txt'),
-	     "gene_input_page": get_download_url(genefileNmRoot + '.lst'),
+	     "gene_input_page": get_download_url(genefileNmRoot + '.txt'),
 	     "slim_input_page": get_download_url(slimInputFile) }
 
     
