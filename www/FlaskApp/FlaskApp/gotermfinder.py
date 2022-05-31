@@ -30,8 +30,7 @@ def set_download_file(filename):
 
 def upload_file_to_s3(file, filename):
 
-    # S3_BUCKET = os.environ['S3_BUCKET']
-    S3_BUCKET = 'sgd-dev-upload'
+    filename = 'gotermfinder/' + filename
 
     s3 = boto3.client('s3')
     file.seek(0)
