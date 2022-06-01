@@ -134,7 +134,7 @@ def get_html_content(id):
     image = f.read()
     f.close()
 
-    image = image.replace("<img src='./", "<img src='" + s3_root_url)
+    image = image.replace("<img src='./", "<img src='" + s3_root_url + 'gotermfinder/')
 
     fw = open(imageFile, "w")
     fw.write(image)
