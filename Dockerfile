@@ -6,6 +6,7 @@ RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y \
         gcc \
+        git \
         g++ \
         libcgi-pm-perl \
         libgd-perl \
@@ -14,7 +15,8 @@ RUN apt-get update \
         wget
 
 WORKDIR /
-RUN wget https://cpan.metacpan.org/authors/id/S/SH/SHERLOCK/GO-TermFinder-0.86.tar.gz \
+RUN git clone https://github.com/yeastgenome/GoToolsDocker.git \
+    && wget https://cpan.metacpan.org/authors/id/S/SH/SHERLOCK/GO-TermFinder-0.86.tar.gz \
     && tar xvfz GO-TermFinder-0.86.tar.gz
 
 WORKDIR /GO-TermFinder-0.86
@@ -55,14 +57,17 @@ RUN apt-get update \
 WORKDIR /usr/local/lib/x86_64-linux-gnu/perl/5.30.0
 COPY --from=builder /usr/local/lib/x86_64-linux-gnu/perl/5.30.0 .
 
-WORKDIR /var/www
-COPY www /var/www/
+WORKDIR /var/www/data
+WORKDIR /var/www/html
+RUN chmod 1777 .
 
 WORKDIR /var/www/tmp
 RUN chmod 1777 .
 
+COPY --from=builder /GoToolsDocker/www /var/www/
+
 WORKDIR /etc/apache2/sites-available
-COPY FlaskApp.conf .
+COPY --from=builder /GoToolsDocker/FlaskApp.conf .
 
 WORKDIR /var/www/FlaskApp/FlaskApp
 RUN a2enmod wsgi \
