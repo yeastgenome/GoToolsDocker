@@ -1,5 +1,7 @@
 #!/bin/sh -x
 
+echo "downloadDatafile.sh start: $(/bin/date)
+
 if [ ! -d /var/www/data/new ]; then
 	/bin/mkdir /var/www/data/new
 	if [ $? -ne 0 ]; then
@@ -48,5 +50,7 @@ echo "creating slim function gaf file..."
 /bin/mv slim_component_gene_association.sgd ../
 /bin/mv slim_process_gene_association.sgd ../
 /bin/mv slim_function_gene_association.sgd ../
+
+echo "downloadDatafile.sh end: $(/bin/date)
 
 exit 0
