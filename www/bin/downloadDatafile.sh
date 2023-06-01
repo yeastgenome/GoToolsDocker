@@ -11,6 +11,7 @@ if [ ! -d /var/www/data/new ]; then
 fi
 
 cd /var/www/data/new/
+/bin/date > timestamp.txt
 
 /usr/bin/wget http://snapshot.geneontology.org/annotations/sgd.gaf.gz
 if [ $? -ne 0 ]; then
