@@ -13,6 +13,9 @@ fi
 cd /var/www/data/new/
 /bin/date > timestamp.txt
 
+# pause to allow time for "docker exec" to debug
+sleep 300
+
 /usr/bin/wget http://snapshot.geneontology.org/annotations/sgd.gaf.gz
 if [ $? -ne 0 ]; then
 	echo "Error: wget http://snapshot.geneontology.org/annotations/sgd.gaf.gz"
