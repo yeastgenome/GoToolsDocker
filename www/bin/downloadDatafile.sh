@@ -2,6 +2,8 @@
 
 echo "downloadDatafile.sh start: $(/bin/date)
 
+echo "$(/usr/bin/df -h)"
+
 if [ ! -d /var/www/data/new ]; then
 	/bin/mkdir /var/www/data/new
 	echo "return code is $?"
@@ -17,7 +19,7 @@ echo "return code is $?"
 echo "return code is $?"
 
 # pause to allow time for "docker exec" to debug
-sleep 300
+/uar/bin/sleep 300
 echo "return code is $?"
 
 /usr/bin/wget http://snapshot.geneontology.org/annotations/sgd.gaf.gz
