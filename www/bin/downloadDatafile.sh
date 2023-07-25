@@ -77,7 +77,7 @@ echo "return code is $?"
 /bin/mv slim_function_gene_association.sgd ../
 echo "return code is $?"
 
-echo "downloadDatafile.sh end: $(/bin/date)
+echo "downloadDatafile.sh end: $(/bin/date)"
 echo "return code is $?"
 
 exit 0
