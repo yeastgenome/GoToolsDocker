@@ -1,6 +1,6 @@
 #!/bin/sh -x
 
-echo "downloadDatafile.sh start: $(/bin/date)
+echo "downloadDatafile.sh start: $(/bin/date)"
 
 echo "$(/usr/bin/df -h)"
 
