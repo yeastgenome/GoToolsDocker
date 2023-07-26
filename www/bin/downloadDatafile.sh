@@ -37,8 +37,8 @@ fi
 /usr/bin/grep -v -v "$(printf '\t')CPX-" sgd.gaf > ../gene_association.sgd
 
 /bin/mv go-basic.obo ../gene_ontology.obo
-/bin/cp ../gene_association.sgd ../unparsed/
-/bin/cp ../gene_ontology.obo ../unparsed/
+/bin/cp -p ../gene_association.sgd ../unparsed/
+/bin/cp -p ../gene_ontology.obo ../unparsed/
 
 echo "creating slim component gaf file..." | /bin/tee -a $OUTPUT_FILE
 
