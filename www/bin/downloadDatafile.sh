@@ -34,7 +34,7 @@ fi
 /bin/cp -p ../gene_ontology.obo ../gene_ontology.obo_old
 
 /usr/bin/grep -v "$(printf '\t')IBA$(printf '\t')" sgd.gaf | /usr/bin/grep -v "$(printf '\t')IEA$(printf '\t')" | /usr/bin/grep -v "$(printf '\t')CPX-" > ../gene_association_mapper.sgd 
-/usr/bin/grep -v -v "$(printf '\t')CPX-" sgd.gaf > ../gene_association.sgd
+/bin/cp -p ../gene_association_mapper.sgd ../gene_association.sgd
 
 /bin/mv go-basic.obo ../gene_ontology.obo
 /bin/cp -p ../gene_association.sgd ../unparsed/
