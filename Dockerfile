@@ -49,6 +49,7 @@ RUN apt-get update \
         libipc-run-perl \
         net-tools \
         python3-pip \
+        wget \
     && pip3 install Flask \
     && pip3 install boto3 \
     && pip3 install -U flask-cors \
