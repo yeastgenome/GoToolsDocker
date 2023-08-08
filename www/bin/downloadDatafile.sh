@@ -62,7 +62,7 @@ echo "creating slim function gaf file..." | /bin/tee -a $OUTPUT_FILE
 
 echo "downloadDatafile.sh finished:  $(/bin/date)" | /bin/tee -a $OUTPUT_FILE
 
-* create and send email report
+# create and send email report
 
 # add \n characters to end of each line in OUTPUT_FILE for JSON message
 /usr/bin/touch $OUTPUT2_FILE
