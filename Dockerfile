@@ -36,6 +36,7 @@ RUN apt-get update \
     && apt-get install -y \
         apache2 \
         build-essential \
+        curl \
         git \
         graphviz \
         libapache2-mod-wsgi-py3 \
@@ -49,7 +50,13 @@ RUN apt-get update \
         libipc-run-perl \
         net-tools \
         python3-pip \
+        unzip \
         wget \
+    && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
+    && unzip awscliv2.zip \
+    && ./aws/install \
+    && rm -r aws awscliv2.zip \
+    && DEBIAN_FRONTEND=noninteractive apt-get purge -y curl unzip \
     && pip3 install Flask \
     && pip3 install boto3 \
     && pip3 install -U flask-cors \
