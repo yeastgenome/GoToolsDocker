@@ -224,7 +224,7 @@ def gtf_search(request, id):
         pvalue = 0.01
         
     option = ""
-    if pvalue == "" and pvalue != 0.01:
+    if pvalue != "" and pvalue != 0.01:
         option = " -p " + pvalue
 
     if genes4bg:
