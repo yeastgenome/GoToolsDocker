@@ -16,7 +16,8 @@ if [ ! -d /var/www/data/new ]; then
 fi
 
 cd /var/www/data/new/
-/usr/bin/wget http://snapshot.geneontology.org/annotations/sgd.gaf.gz 2>&1 | /bin/tee -a $OUTPUT_FILE
+# /usr/bin/wget http://snapshot.geneontology.org/annotations/sgd.gaf.gz 2>&1 | /bin/tee -a $OUTPUT_FILE
+/usr/bin/wget https://downloads.yeastgenome.org/latest/sgd.gaf.gz 2>&1 | /bin/tee -a $OUTPUT_FILE
 if [ $? -ne 0 ]; then
 	echo "Error: wget http://snapshot.geneontology.org/annotations/sgd.gaf.gz" | /bin/tee -a $OUTPUT_FILE
 	exit $?
