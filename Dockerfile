@@ -55,7 +55,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # Make apt more resilient + smaller indexes
 RUN set -eux; \
   echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries; \
-  echo 'Acquire::http::No-Cache "true";' > /etc/apt/apt.conf.d/99no-cache; \
+  echo 'Acquire::http::No-Cache "true";' > /etc/apt/apt/apt.conf.d/99no-cache || true; \
   echo 'Acquire::Languages "none";' > /etc/apt/apt.conf.d/99no-languages
 
 # ---- Apache only (small layer)
@@ -76,10 +76,10 @@ RUN set -eux; \
   apt-get install -y --no-install-recommends python3 python3-venv; \
   rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /usr/share/doc/* /usr/share/man/* /usr/share/locale/*
 
-# ---- Core utilities (tiny layer)
+# ---- Core utilities (tiny layer) + wget
 RUN set -eux; \
   apt-get update || (sleep 3; apt-get update); \
-  apt-get install -y --no-install-recommends net-tools ca-certificates; \
+  apt-get install -y --no-install-recommends net-tools ca-certificates wget; \
   rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # ---- Perl core (small)
