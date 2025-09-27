@@ -65,19 +65,19 @@ echo "downloadDatafile.sh finished:  $(/bin/date)" | /bin/tee -a $OUTPUT_FILE
 
 # create and send email report
 
-# add \n characters to end of each line in OUTPUT_FILE for JSON message
-/usr/bin/touch $OUTPUT2_FILE
-/usr/bin/awk '{printf "%s\\n", $0}' $OUTPUT_FILE > $OUTPUT2_FILE
+# # add \n characters to end of each line in OUTPUT_FILE for JSON message
+# /usr/bin/touch $OUTPUT2_FILE
+# /usr/bin/awk '{printf "%s\\n", $0}' $OUTPUT_FILE > $OUTPUT2_FILE
 
-# create JSON email message
-echo '{"Data": "From: '$(echo $EMAIL_FROM)'\nTo: '$(echo $EMAIL_TO)'\nSubject: downloadDatafile.sh report\nMIME-Version: 1.0\nContent-type: Multipart/Mixed; boundary=\"NextPart\"\n\n--NextPart\nContent-Type: text/plain\n\ndownloadDatafile.sh completed successfully\n\n--NextPart\nContent-Type: text/plain;\nContent-Disposition: attachment; filename=\"downloadDatafile_report.txt\"\n\n'$(cat $OUTPUT2_FILE)'\n--NextPart--"}' > $MESSAGE_JSON_FILE
+# # create JSON email message
+# echo '{"Data": "From: '$(echo $EMAIL_FROM)'\nTo: '$(echo $EMAIL_TO)'\nSubject: downloadDatafile.sh report\nMIME-Version: 1.0\nContent-type: Multipart/Mixed; boundary=\"NextPart\"\n\n--NextPart\nContent-Type: text/plain\n\ndownloadDatafile.sh completed successfully\n\n--NextPart\nContent-Type: text/plain;\nContent-Disposition: attachment; filename=\"downloadDatafile_report.txt\"\n\n'$(cat $OUTPUT2_FILE)'\n--NextPart--"}' > $MESSAGE_JSON_FILE
 
-# replace literal newline characters with literal '\n' characters in JSON message
-/usr/bin/sed -i 's/$/\\n/' $MESSAGE_JSON_FILE
-/usr/bin/touch $MESSAGE2_JSON_FILE
-/usr/bin/tr -d '\n' < $MESSAGE_JSON_FILE > $MESSAGE2_JSON_FILE
-/usr/bin/sed -i 's/}\\n/}\n/' $MESSAGE2_JSON_FILE  # add final trailing newline
+# # replace literal newline characters with literal '\n' characters in JSON message
+# /usr/bin/sed -i 's/$/\\n/' $MESSAGE_JSON_FILE
+# /usr/bin/touch $MESSAGE2_JSON_FILE
+# /usr/bin/tr -d '\n' < $MESSAGE_JSON_FILE > $MESSAGE2_JSON_FILE
+# /usr/bin/sed -i 's/}\\n/}\n/' $MESSAGE2_JSON_FILE  # add final trailing newline
 
-/usr/local/bin/aws ses send-raw-email --cli-binary-format raw-in-base64-out --raw-message file://${MESSAGE2_JSON_FILE} --region $AWS_SES_REGION
+# /usr/local/bin/aws ses send-raw-email --cli-binary-format raw-in-base64-out --raw-message file://${MESSAGE2_JSON_FILE} --region $AWS_SES_REGION
 
 exit 0
