@@ -169,23 +169,31 @@ def load_slim_any(path: str, alt2primary: Dict[str, str], terms: Dict[str, GOTer
             line = raw.split("#", 1)[0].strip()
             if not line:
                 continue
-            m = re.search(r"(GO:\d{7}|\d{1,7})", line, flags=re.IGNORECASE)
-            if not m:
+
+            # Prefer explicit GO: identifiers; otherwise consider trailing bare digits.                                              
+            tokens = re.findall(r"GO:\s*\d{1,7}|\d{1,7}", line, flags=re.IGNORECASE)
+            if not tokens:
                 continue
-            gid = m.group(1)
-            if gid.isdigit():
-                gid = "GO:" + gid.zfill(7)
+
+            # Choose the last GO:… token if any; else the last bare number.                                                          
+            go_like = [t for t in tokens if t.upper().startswith("GO:")]
+            tok = go_like[-1] if go_like else tokens[-1]
+
+            # Normalize to GO:0000000                                                                                                
+            if tok.upper().startswith("GO:"):
+                num = re.sub(r"(?i)GO:\s*", "", tok)
             else:
-                gid = "GO:" + gid.split("GO:")[1].zfill(7)
+                num = tok
+            gid = "GO:" + num.zfill(7)
             gid = gid.upper()
-            if gid in alt2primary:
-                gid = alt2primary[gid]
+
+            # Map alt IDs, validate, and add                                                                                         
+            gid = alt2primary.get(gid, gid)
             t = terms.get(gid)
             if not t or t.is_obsolete:
                 continue
             slim.add(gid)
     return slim
-
 
 
 def normalize_go_id(s: str) -> Optional[str]:
