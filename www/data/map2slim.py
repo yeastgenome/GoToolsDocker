@@ -3,29 +3,12 @@
 """
 Python rewrite of the classic Perl `map2slim` script.
 
-Feature parity (practical subset):
-- Read a GO slim OBO and a full GO ontology OBO (one or many files, or a cached pickle).
-- Map an association file (GAF by default; GFF-ish with --gff) to slim terms:
-    * For each input annotation term T, emit one output line for each "most pertinent"
-      slim ancestor (nearest slim ancestor by shortest path; if multiple and one
-      subsumes another, keep the more specific only).
-- Optional count mode (-c/--count) prints, per slim term, the count of distinct
-  products mapped directly (leaf) and via any descendant (all). With -t/--tab,
-  indent according to the slim DAG's BFS depth (best-effort; DAGs aren't trees).
-- Optional mapping dump (--outmap) for *all* terms in the full ontology, listing
-  direct slim(s) and all slim ancestors. Optional --shownames adds names.
-- Optional aspect filter (-a/--aspect F|P|C) applied to association rows.
-- Optional ontology cache (--cache path) using pickle for faster reloads.
-- Optional input mapping (--inmap) to preload memoized term→slim mappings.
-- GFF mode (--gff) interprets col 3 as a GO term name (or SO:XXXX) and col 9 as product.
-- Verbose mode (-v/--verbose) for progress logs.
-
-Not (yet) implemented:
-- Bucket terms (-b/--bucket). The original script can synthesize "OTHER-..." bucket
-  nodes inside the slim; this implementation accepts the flag but **ignores** it,
-  emitting a warning. If you need this, call it out and we can add it.
-- Database mode (--dbname/--host) and --err redirection.
-- Evidence code filtering (--evcode/--ev) is parsed but not applied.
+Parity highlights vs Perl:
+- Honors --inmap to seed/override mappings.
+- No de-duplication by default (Perl behavior). Optional --dedupe to enable.
+- Maps association GO alt-IDs -> primary.
+- --outmap covers all ontology terms (no namespace filter).
+- Improved slim list parsing: prefer GO:\d+, fallback to bare digits.
 
 Usage examples:
   Map an association file to slim:
@@ -38,7 +21,6 @@ Usage examples:
 
   Dump term→slim mappings for all terms:
     python map2slim.py goslim_generic.obo gene_ontology.obo --outmap map.txt --shownames
-
 """
 from __future__ import annotations
 import argparse
@@ -170,16 +152,16 @@ def load_slim_any(path: str, alt2primary: Dict[str, str], terms: Dict[str, GOTer
             if not line:
                 continue
 
-            # Prefer explicit GO: identifiers; otherwise consider trailing bare digits.                                              
+            # Prefer explicit GO: identifiers; otherwise consider bare digits.
             tokens = re.findall(r"GO:\s*\d{1,7}|\d{1,7}", line, flags=re.IGNORECASE)
             if not tokens:
                 continue
 
-            # Choose the last GO:… token if any; else the last bare number.                                                          
+            # Choose the last GO:… token if any; else the last bare number.
             go_like = [t for t in tokens if t.upper().startswith("GO:")]
             tok = go_like[-1] if go_like else tokens[-1]
 
-            # Normalize to GO:0000000                                                                                                
+            # Normalize to GO:0000000
             if tok.upper().startswith("GO:"):
                 num = re.sub(r"(?i)GO:\s*", "", tok)
             else:
@@ -187,7 +169,7 @@ def load_slim_any(path: str, alt2primary: Dict[str, str], terms: Dict[str, GOTer
             gid = "GO:" + num.zfill(7)
             gid = gid.upper()
 
-            # Map alt IDs, validate, and add                                                                                         
+            # Map alt IDs, validate, and add
             gid = alt2primary.get(gid, gid)
             t = terms.get(gid)
             if not t or t.is_obsolete:
@@ -261,18 +243,15 @@ def nearest_slim_ancestors(
                 elif d + 1 == best_depth:
                     direct.add(p)
             else:
-                # keep traversing regardless of namespace, but record only matches in aspect
+                # traverse further
                 q.append((p, d + 1))
                 if namespace_of.get(p) in (aspect_ns, None):
-                    # If parent is in aspect, but not slim, it's still an ancestor that might lead to slim
                     pass
         if best_depth is not None and q and q[0][1] > best_depth:
             break
 
-    # Remove redundant direct ancestors: if A and B are both in `direct` and A is ancestor of B,
-    # keep the more specific (B). We'll test ancestor relation via upward closure from B.
+    # Remove redundant direct ancestors (keep more specific only)
     if len(direct) > 1:
-        # compute upward closures once
         up: Dict[str, Set[str]] = {}
         for d0 in direct:
             seen = {d0}
@@ -280,7 +259,7 @@ def nearest_slim_ancestors(
             anc = set()
             while dq:
                 x = dq.popleft()
-                for p in parents.get(x, ()):  # climbing further up
+                for p in parents.get(x, ()):
                     if p not in seen:
                         seen.add(p)
                         anc.add(p)
@@ -291,21 +270,18 @@ def nearest_slim_ancestors(
             for b in list(direct):
                 if a == b:
                     continue
-                if a in up.get(b, set()):  # a is ancestor of b => drop a
+                if a in up.get(b, set()):                     # a is ancestor of b => drop a
                     if a in keep:
                         keep.remove(a)
         direct = keep
 
-    # Compute all slim ancestors (any depth)
-    # We already captured during BFS when encountering slim nodes at any depth
-    # but if no direct found, we still want all reachable slim ancestors.
+    # Ensure all slim ancestors collected
     if not all_anc:
-        # Explore fully upward to collect any slim ancestors
         visited = {start}
         dq = deque([start])
         while dq:
             x = dq.popleft()
-            for p in parents.get(x, ("")):
+            for p in parents.get(x, ()):
                 if p in visited:
                     continue
                 visited.add(p)
@@ -360,22 +336,27 @@ def dump_outmap(
     parents: Dict[str, Set[str]],
     shownames: bool,
     verbose: bool,
+    memo_mapslim: Dict[str, Tuple[List[str], List[str]]],  # NEW
 ):
+    # No namespace restriction (match Perl)
     namespace_of = {tid: t.namespace for tid, t in terms.items()}
-    aspect_ns_set = set(ASPECT_NS.values())
     with open(out_path, "w", encoding="utf-8") as out:
-        all_terms = sorted(terms.keys())
-        for acc in all_terms:
-            # restrict to proper GO namespaces
-            if namespace_of.get(acc) not in aspect_ns_set:
-                continue
-            direct, all_anc = nearest_slim_ancestors(acc, slim, parents, namespace_of, namespace_of.get(acc, ""))
+        for acc in sorted(terms.keys()):
+            if acc in memo_mapslim:
+                direct, all_anc = memo_mapslim[acc]
+                direct_set = set(direct)
+                all_set = set(all_anc)
+            else:
+                direct_set, all_set = nearest_slim_ancestors(
+                    acc, slim, parents, namespace_of, namespace_of.get(acc, "")
+                )
+
             if shownames:
                 def fmt(ids: Iterable[str]) -> str:
                     return " ".join(f"{i} \"{terms.get(i).name if terms.get(i) else '?'}\"" for i in ids)
-                line = f"{acc} => {fmt(sorted(direct))} // {fmt(sorted(all_anc))}\n"
+                line = f"{acc} => {fmt(sorted(direct_set))} // {fmt(sorted(all_set))}\n"
             else:
-                line = f"{acc} => {' '.join(sorted(direct))} // {' '.join(sorted(all_anc))}\n"
+                line = f"{acc} => {' '.join(sorted(direct_set))} // {' '.join(sorted(all_set))}\n"
             out.write(line)
     if verbose:
         print(f"[outmap] wrote {out_path}", file=sys.stderr)
@@ -392,6 +373,9 @@ def process_assocs(
     count_mode: bool,
     tab: bool,
     verbose: bool,
+    memo_mapslim: Dict[str, Tuple[List[str], List[str]]],  # NEW
+    dedupe: bool,                                           # NEW
+    alt2primary: Dict[str, str],                            # NEW
 ):
     namespace_of = {tid: t.namespace for tid, t in terms.items()}
 
@@ -399,7 +383,7 @@ def process_assocs(
     leafh: Dict[str, Set[str]] = defaultdict(set)
     allh: Dict[str, Set[str]] = defaultdict(set)
 
-    seen_rows: Set[Tuple[str, ...]] = set()
+    seen_rows: Set[Tuple[str, ...]] = set()  # only used if dedupe
     out_fh = open(out_path, "w", encoding="utf-8") if out_path else sys.stdout
 
     # read
@@ -432,8 +416,7 @@ def process_assocs(
                 if type_val.startswith("SO:"):
                     acc = type_val
                 else:
-                    # look up by name
-                    # (linear scan; could be indexed by name -> id if needed)
+                    # linear scan by name (could pre-index if needed)
                     for tid, t in terms.items():
                         if t.name == type_val:
                             acc = tid
@@ -452,7 +435,7 @@ def process_assocs(
             if is_not and str(is_not).strip().lower() == "not":
                 continue
 
-            # aspect filter
+            # aspect filter (GAF only)
             if aspect and not gff:
                 gaf_aspect = cols[8].strip().upper() if len(cols) > 8 else ""
                 if gaf_aspect != aspect:
@@ -463,13 +446,22 @@ def process_assocs(
                 if verbose:
                     print(f"[warn] cannot normalize term: {acc}", file=sys.stderr)
                 continue
-            term = terms.get(acc_norm)
-            if not term or term.is_obsolete:
+
+            # alt-id -> primary (match Perl libs behavior)
+            acc_norm = alt2primary.get(acc_norm, acc_norm)
+
+            # allow obsolete terms if present in ontology object (Perl doesn't hard-filter)
+            if acc_norm not in terms:
                 continue
 
-            # Find slim ancestors
-            aspect_ns = ASPECT_NS.get(aspect, namespace_of.get(acc_norm, "")) if aspect else namespace_of.get(acc_norm, "")
-            direct, all_anc = nearest_slim_ancestors(acc_norm, slim, parents, namespace_of, aspect_ns)
+            # Find slim ancestors: prefer memo (--inmap), else compute
+            if acc_norm in memo_mapslim:
+                direct = set(memo_mapslim[acc_norm][0])
+                all_anc = set(memo_mapslim[acc_norm][1])
+            else:
+                aspect_ns = ASPECT_NS.get(aspect, namespace_of.get(acc_norm, "")) if aspect else namespace_of.get(acc_norm, "")
+                direct, all_anc = nearest_slim_ancestors(acc_norm, slim, parents, namespace_of, aspect_ns)
+
             if not direct and not all_anc:
                 # No path to slim; drop
                 continue
@@ -481,24 +473,26 @@ def process_assocs(
                 allh[s].add(prod)
 
             if not count_mode:
-                # emit mapped rows (one per direct slim)
+                # emit mapped rows (one per direct slim); no dedupe by default
                 if gff:
                     for s in sorted(direct):
                         new_cols = list(cols)
                         new_cols[2] = s
                         key = tuple(new_cols)
-                        if key in seen_rows:
-                            continue
-                        seen_rows.add(key)
+                        if dedupe:
+                            if key in seen_rows:
+                                continue
+                            seen_rows.add(key)
                         print("\t".join(new_cols), file=out_fh)
                 else:
                     for s in sorted(direct):
                         new_cols = list(cols)
                         new_cols[4] = s
                         key = tuple(new_cols)
-                        if key in seen_rows:
-                            continue
-                        seen_rows.add(key)
+                        if dedupe:
+                            if key in seen_rows:
+                                continue
+                            seen_rows.add(key)
                         print("\t".join(new_cols), file=out_fh)
 
     if not count_mode:
@@ -509,12 +503,9 @@ def process_assocs(
         return
 
     # COUNT MODE OUTPUT
-    # We need to iterate slim DAG and print: acc name (full name) (slim name?) count_leaf count_all obsolete? type?
-    # We'll approximate the Perl's output, using BFS depth for indentation when --tab.
     children = build_child_map(parents)
 
     # Determine slim nodes' depths for indentation (best-effort on DAG):
-    # roots = slim terms with no slim parents
     slim_parents = {s: {p for p in parents.get(s, set()) if p in slim} for s in slim}
     roots = [s for s in slim if len(slim_parents.get(s, set())) == 0]
 
@@ -542,7 +533,6 @@ def process_assocs(
         count_all = len(allh.get(s, set()))
         indent = " " * (depth.get(s, 0) + 1) if tab else ""
         full_name = t.name
-        # In Perl, the 3rd column shows the name in the full ontology (t2->name), often same.
         full_onto_name = full_name
         is_obs = "OBSOLETE" if t.is_obsolete else ""
         onto = t.namespace or ""
@@ -574,7 +564,7 @@ def main():
     p.add_argument("--outmap", help="Write term→slim mappings for all terms and exit")
     p.add_argument("--shownames", action="store_true", help="Include names in --outmap output")
     p.add_argument("--cache", help="Pickle cache path for ontology graph (read/write)")
-    p.add_argument("--inmap", help="Preload memoized mappings from a previous --outmap file")
+    p.add_argument("--inmap", help="Preload/memoize term→slim mappings from a previous --outmap file")
     p.add_argument("--gff", action="store_true", help="Treat assoc as GFF-like (col3=type, col9=product)")
     p.add_argument("--aspect", "-a", choices=["F", "P", "C"], help="Restrict to Aspect (GAF col 9)")
     p.add_argument("--count", "-c", action="store_true", help="Count mode instead of mapping rows")
@@ -582,6 +572,8 @@ def main():
     p.add_argument("--bucket", "-b", help="(Not implemented) Bucket slim file output")
     p.add_argument("--evcode", "--ev", action="append", help="Evidence code filter (parsed, not applied)")
     p.add_argument("--verbose", "-v", action="store_true")
+    p.add_argument("--dedupe", action="store_true",
+                   help="De-duplicate identical output rows (Perl does NOT dedupe; default off)")
 
     args = p.parse_args()
 
@@ -629,14 +621,16 @@ def main():
     allowed = {"is_a", "part_of"}
     parents = build_parent_map(terms, allowed)
 
-    # Preload inmap memo if provided (applies only to --outmap shortcutting). We still recompute here for correctness.
-    if args.inmap and args.verbose:
-        _ = load_inmap(args.inmap)
-        print(f"[inmap] loaded memo from {args.inmap} (not strictly required)", file=sys.stderr)
+    # Load inmap (memo) if provided
+    memo_mapslim: Dict[str, Tuple[List[str], List[str]]] = {}
+    if args.inmap:
+        if args.verbose:
+            print(f"[inmap] loading memo from {args.inmap}", file=sys.stderr)
+        memo_mapslim = load_inmap(args.inmap)
 
     # outmap mode
     if args.outmap:
-        dump_outmap(args.outmap, terms, slim, parents, args.shownames, args.verbose)
+        dump_outmap(args.outmap, terms, slim, parents, args.shownames, args.verbose, memo_mapslim)
         return
 
     if not assocfile:
@@ -644,7 +638,8 @@ def main():
 
     # Map / Count
     process_assocs(
-        assocfile, args.out, terms, slim, parents, args.aspect, args.gff, args.count, args.tab, args.verbose
+        assocfile, args.out, terms, slim, parents, args.aspect, args.gff,
+        args.count, args.tab, args.verbose, memo_mapslim, args.dedupe, alt2primary
     )
 
 
