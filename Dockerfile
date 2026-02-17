@@ -36,7 +36,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY www/FlaskApp/FlaskApp/*.py ./
+COPY www/app/*.py ./
 COPY www/data/gene_ontology.obo /var/www/data/
 COPY www/data/gene_association.sgd /var/www/data/
 COPY www/data/slim_*.lst /var/www/data/
