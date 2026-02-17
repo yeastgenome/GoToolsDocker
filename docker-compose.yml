@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  go-tools:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATA_DIR=/var/www/data/
+      - TMP_DIR=/var/www/tmp/
+      - CACHE_DIR=/var/www/cache/
+      - S3_BUCKET=${S3_BUCKET:-}
+    volumes:
+      # Mount data directory for development (optional)
+      - ./www/data:/var/www/data:ro
+      # Mount tmp directory to persist generated files
+      - go-tools-tmp:/var/www/tmp
+      # Mount cache directory to persist ontology cache
+      - go-tools-cache:/var/www/cache
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  go-tools-tmp:
+  go-tools-cache:

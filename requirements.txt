@@ -1,0 +1,17 @@
+# GO Tools Python Dependencies
+# FastAPI web framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# Data validation
+pydantic>=2.5.0
+
+# Scientific computing (hypergeometric test)
+scipy>=1.12.0
+numpy>=1.26.0
+
+# AWS S3 integration
+boto3>=1.34.0
+
+# CORS support (included in FastAPI but explicit)
+# No separate package needed - FastAPI includes CORSMiddleware
