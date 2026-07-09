@@ -17,9 +17,9 @@ fi
 
 cd /var/www/data/new/
 # /usr/bin/wget http://snapshot.geneontology.org/annotations/sgd.gaf.gz 2>&1 | /bin/tee -a $OUTPUT_FILE
-/usr/bin/wget https://downloads.yeastgenome.org/latest/sgd.gaf.gz 2>&1 | /bin/tee -a $OUTPUT_FILE
+/usr/bin/wget http://current.geneontology.org/annotations/gaf/YEAST-mod.gaf.gz 2>&1 | /bin/tee -a $OUTPUT_FILE
 if [ $? -ne 0 ]; then
-	echo "Error: wget http://snapshot.geneontology.org/annotations/sgd.gaf.gz" | /bin/tee -a $OUTPUT_FILE
+	echo "Error: wget http://current.geneontology.org/annotations/gaf/YEAST-mod.gaf.gz" | /bin/tee -a $OUTPUT_FILE
 	exit $?
 fi
 
@@ -29,12 +29,15 @@ if [ $? -ne 0 ]; then
         exit $?
 fi
 
-/bin/gunzip -f sgd.gaf.gz 2>&1 | /bin/tee -a $OUTPUT_FILE
+/bin/gunzip -f YEAST-mod.gaf.gz 2>&1 | /bin/tee -a $OUTPUT_FILE
 
 /bin/cp -p ../gene_association.sgd ../gene_association.sgd_old
 /bin/cp -p ../gene_ontology.obo ../gene_ontology.obo_old
 
-/usr/bin/grep -v "$(printf '\t')IBA$(printf '\t')" sgd.gaf | /usr/bin/grep -v "$(printf '\t')IEA$(printf '\t')" | /usr/bin/grep -v "$(printf '\t')CPX-" > ../gene_association_mapper.sgd 
+## GO renamed the by-group sgd.gaf.gz to the by-taxon YEAST-mod.gaf.gz; the
+## content is the same, so only the input filename changes here. Keep the
+## original IBA/IEA/CPX- filters unchanged.
+/usr/bin/grep -v "$(printf '\t')IBA$(printf '\t')" YEAST-mod.gaf | /usr/bin/grep -v "$(printf '\t')IEA$(printf '\t')" | /usr/bin/grep -v "$(printf '\t')CPX-" > ../gene_association_mapper.sgd
 /bin/cp -p ../gene_association_mapper.sgd ../gene_association.sgd
 
 /bin/mv go-basic.obo ../gene_ontology.obo
